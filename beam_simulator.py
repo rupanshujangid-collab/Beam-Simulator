@@ -33,25 +33,392 @@ st.set_page_config(page_title="Beam Simulator Pro", page_icon="🏗️", layout=
 
 st.markdown("""
 <style>
-    .stApp { background-color: #0a1628; color: #e0e0e0; }
-    .stSidebar { background-color: #0d2137; }
-    [data-testid="stMetricValue"] { color: #ffffff !important; font-size: 1.4rem !important; }
-    [data-testid="stMetricLabel"] { color: #00bfff !important; }
-    .safe-box { background: #00c85322; border: 2px solid #00c853; border-radius: 10px; padding: 12px 20px; font-size: 16px; font-weight: bold; color: #00c853; }
-    .unsafe-box { background: #ff475722; border: 2px solid #ff4757; border-radius: 10px; padding: 12px 20px; font-size: 16px; font-weight: bold; color: #ff4757; }
-    .ai-box { background: #7c4dff22; border: 2px solid #7c4dff; border-radius: 10px; padding: 15px 20px; margin: 5px 0; }
-    .ai-title { color: #7c4dff; font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-    .ai-suggestion { color: #e0e0e0; font-size: 14px; padding: 4px 0; }
-    .ai-warning { color: #ff4757; font-size: 14px; font-weight: bold; padding: 4px 0; }
-    .ai-good { color: #00c853; font-size: 14px; padding: 4px 0; }
-    .feature-badge { background: #00bfff22; border: 1px solid #00bfff; border-radius: 6px; padding: 4px 10px; font-size: 12px; color: #00bfff; display: inline-block; margin: 2px; }
-    h1 { color: #00bfff !important; } h2, h3 { color: #00d4aa !important; }
-    .dynamic-box { background: #ff670022; border: 2px solid #ff6700; border-radius: 10px; padding: 10px 16px; margin: 5px 0; }
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600&display=swap');
+
+    /* ── Background with animated gradient mesh ── */
+    .stApp {
+        background: linear-gradient(135deg, #020818 0%, #0a1628 30%, #0d1f3c 60%, #050d1a 100%);
+        color: #e0e0e0;
+        font-family: 'Rajdhani', sans-serif;
+    }
+
+    /* Animated background grid */
+    .stApp::before {
+        content: '';
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background-image:
+            linear-gradient(rgba(0,191,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0,191,255,0.03) 1px, transparent 1px);
+        background-size: 40px 40px;
+        pointer-events: none; z-index: 0;
+        animation: gridMove 20s linear infinite;
+    }
+    @keyframes gridMove {
+        0% { background-position: 0 0; }
+        100% { background-position: 40px 40px; }
+    }
+
+    /* ── Sidebar ── */
+    .stSidebar {
+        background: linear-gradient(180deg, #050f20 0%, #0a1628 50%, #080e1d 100%) !important;
+        border-right: 1px solid #00bfff22;
+    }
+    .stSidebar .stMarkdown h2 {
+        background: linear-gradient(90deg, #00bfff, #a855f7);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        font-family: 'Orbitron', monospace; font-size: 16px !important;
+    }
+    .stSidebar .stMarkdown h3 {
+        color: #00d4aa !important;
+        border-left: 3px solid #00d4aa;
+        padding-left: 8px;
+        font-size: 13px !important;
+    }
+
+    /* ── Sidebar widgets ── */
+    .stSidebar .stSlider > div > div > div {
+        background: linear-gradient(90deg, #00bfff, #a855f7) !important;
+    }
+    .stSidebar .stSelectbox > div > div {
+        background: #0d2137 !important;
+        border: 1px solid #00bfff44 !important;
+        border-radius: 8px !important;
+        color: #e0e0e0 !important;
+    }
+
+    /* ── Metric Cards ── */
+    [data-testid="stMetric"] {
+        background: linear-gradient(135deg, #0d2137 0%, #0a1e35 100%);
+        border: 1px solid #00bfff33;
+        border-radius: 12px;
+        padding: 10px 14px;
+        box-shadow: 0 0 15px #00bfff11, inset 0 1px 0 #00bfff22;
+        transition: all 0.3s;
+    }
+    [data-testid="stMetric"]:hover {
+        border-color: #00bfff88;
+        box-shadow: 0 0 25px #00bfff33;
+        transform: translateY(-2px);
+    }
+    [data-testid="stMetricValue"] {
+        color: #ffffff !important;
+        font-size: 1.3rem !important;
+        font-family: 'Orbitron', monospace !important;
+        text-shadow: 0 0 10px #00bfff88;
+    }
+    [data-testid="stMetricLabel"] {
+        color: #00bfff !important;
+        font-family: 'Rajdhani', sans-serif !important;
+        font-weight: 600 !important;
+        letter-spacing: 1px;
+    }
+
+    /* ── Headings ── */
+    h1 {
+        font-family: 'Orbitron', monospace !important;
+        background: linear-gradient(90deg, #00bfff 0%, #a855f7 50%, #00d4aa 100%);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        font-size: 2rem !important;
+        text-shadow: none;
+        letter-spacing: 2px;
+        animation: titleGlow 3s ease-in-out infinite alternate;
+    }
+    @keyframes titleGlow {
+        from { filter: drop-shadow(0 0 8px #00bfff88); }
+        to   { filter: drop-shadow(0 0 20px #a855f788); }
+    }
+    h2, h3 {
+        font-family: 'Rajdhani', sans-serif !important;
+        background: linear-gradient(90deg, #00d4aa, #00bfff);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        letter-spacing: 1px;
+    }
+
+    /* ── Feature Badges ── */
+    .feature-badge {
+        background: linear-gradient(135deg, #00bfff15, #a855f715);
+        border: 1px solid;
+        border-image: linear-gradient(90deg, #00bfff, #a855f7) 1;
+        border-radius: 20px !important;
+        padding: 5px 14px;
+        font-size: 12px;
+        font-family: 'Rajdhani', sans-serif;
+        font-weight: 600;
+        letter-spacing: 1px;
+        display: inline-block; margin: 3px;
+        background-clip: padding-box;
+        color: #00d4aa;
+        box-shadow: 0 0 10px #00bfff22;
+        transition: all 0.3s;
+    }
+    .feature-badge:hover { box-shadow: 0 0 20px #00bfff55; }
+
+    /* ── Safe / Unsafe boxes ── */
+    .safe-box {
+        background: linear-gradient(135deg, #00c85318, #00d4aa12);
+        border: 2px solid #00c853;
+        border-radius: 14px; padding: 14px 22px;
+        font-size: 16px; font-weight: bold; color: #00c853;
+        font-family: 'Rajdhani', sans-serif;
+        box-shadow: 0 0 20px #00c85333, inset 0 1px 0 #00c85344;
+        animation: safePulse 2s ease-in-out infinite;
+    }
+    @keyframes safePulse {
+        0%,100% { box-shadow: 0 0 20px #00c85333; }
+        50%      { box-shadow: 0 0 35px #00c85366; }
+    }
+    .unsafe-box {
+        background: linear-gradient(135deg, #ff475718, #ff6b3512);
+        border: 2px solid #ff4757;
+        border-radius: 14px; padding: 14px 22px;
+        font-size: 16px; font-weight: bold; color: #ff4757;
+        font-family: 'Rajdhani', sans-serif;
+        box-shadow: 0 0 20px #ff475733;
+        animation: unsafePulse 1s ease-in-out infinite;
+    }
+    @keyframes unsafePulse {
+        0%,100% { box-shadow: 0 0 20px #ff475744; }
+        50%      { box-shadow: 0 0 40px #ff475799; }
+    }
+
+    /* ── AI Box ── */
+    .ai-box {
+        background: linear-gradient(135deg, #a855f715, #7c4dff12, #00bfff08);
+        border: 1.5px solid;
+        border-image: linear-gradient(135deg, #a855f7, #7c4dff, #00bfff) 1;
+        border-radius: 14px; padding: 18px 22px; margin: 8px 0;
+        box-shadow: 0 0 25px #7c4dff22;
+        background-clip: padding-box;
+    }
+    .ai-title {
+        font-family: 'Orbitron', monospace;
+        background: linear-gradient(90deg, #a855f7, #7c4dff, #00bfff);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        font-size: 16px; font-weight: bold; margin-bottom: 12px;
+        letter-spacing: 1px;
+    }
+    .ai-suggestion { color: #c8d8e8; font-size: 14px; padding: 4px 0; font-family: 'Rajdhani'; }
+    .ai-warning {
+        color: #ff6b6b; font-size: 14px; font-weight: bold; padding: 4px 0;
+        text-shadow: 0 0 8px #ff4757aa;
+    }
+    .ai-good {
+        color: #00e676; font-size: 14px; padding: 4px 0;
+        text-shadow: 0 0 8px #00c85388;
+    }
+
+    /* ── Dynamic box ── */
+    .dynamic-box {
+        background: linear-gradient(135deg, #ff670015, #ffd70010);
+        border: 1.5px solid #ff6700;
+        border-radius: 12px; padding: 12px 18px; margin: 6px 0;
+        box-shadow: 0 0 15px #ff670033;
+    }
+
+    /* ── Divider ── */
+    hr {
+        border: none;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #00bfff66, #a855f766, #00d4aa66, transparent);
+        margin: 20px 0;
+    }
+
+    /* ── Buttons ── */
+    .stButton > button, .stDownloadButton > button {
+        background: linear-gradient(135deg, #0d2137, #1b3a5c) !important;
+        border: 1.5px solid #00bfff66 !important;
+        color: #00bfff !important;
+        border-radius: 10px !important;
+        font-family: 'Rajdhani', sans-serif !important;
+        font-weight: 600 !important;
+        letter-spacing: 1px !important;
+        transition: all 0.3s !important;
+        box-shadow: 0 0 10px #00bfff22 !important;
+    }
+    .stButton > button:hover, .stDownloadButton > button:hover {
+        background: linear-gradient(135deg, #00bfff22, #a855f722) !important;
+        border-color: #00bfff !important;
+        box-shadow: 0 0 20px #00bfff55 !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* ── Expander ── */
+    .streamlit-expanderHeader {
+        background: linear-gradient(90deg, #0d2137, #1b3a5c) !important;
+        border: 1px solid #00bfff33 !important;
+        border-radius: 10px !important;
+        color: #00bfff !important;
+    }
+    .streamlit-expanderContent {
+        background: #080e1d !important;
+        border: 1px solid #00bfff22 !important;
+        border-top: none !important;
+    }
+
+    /* ── Dataframe ── */
+    .stDataFrame { border: 1px solid #00bfff33 !important; border-radius: 10px; }
+
+    /* ── Section divider glow line ── */
+    .section-title {
+        background: linear-gradient(90deg, #00bfff, #a855f7, #00d4aa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        font-family: 'Orbitron', monospace;
+        font-size: 18px; font-weight: 700;
+        letter-spacing: 2px;
+        display: inline-block;
+    }
+
+    /* ── Zoom Controls — cross-platform ── */
+    .zoom-bar {
+        position: fixed; bottom: 24px; right: 20px; z-index: 99999;
+        display: flex; flex-direction: column; align-items: center; gap: 6px;
+        background: linear-gradient(180deg, #050f20ee, #0a1628ee);
+        border: 1.5px solid #00bfff44;
+        border-radius: 16px; padding: 12px 10px;
+        box-shadow: 0 0 30px #00bfff22, 0 8px 32px #00000099;
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+        touch-action: none;
+    }
+    .zoom-btn {
+        background: linear-gradient(135deg, #0d2137, #1b3a5c);
+        border: 1.5px solid #00bfff66;
+        color: #00bfff; font-size: 22px; font-weight: bold;
+        width: 46px; height: 46px; border-radius: 12px;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.15s;
+        -webkit-user-select: none; user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        box-shadow: 0 0 10px #00bfff22;
+        /* Make tap targets big enough for mobile */
+        min-width: 46px; min-height: 46px;
+    }
+    .zoom-btn:hover  { background: linear-gradient(135deg,#00bfff33,#a855f733); border-color:#00bfff; box-shadow:0 0 20px #00bfff55; }
+    .zoom-btn:active { transform: scale(0.88); }
+    .zoom-label {
+        color: #00d4aa; font-size: 12px; font-weight: bold;
+        font-family: 'Orbitron', monospace;
+        text-align: center; letter-spacing: 1px;
+        text-shadow: 0 0 8px #00d4aa88;
+    }
+    .zoom-reset {
+        background: linear-gradient(135deg, #7c4dff22, #a855f722);
+        border: 1.5px solid #a855f766;
+        color: #a855f7; font-size: 10px; font-weight: bold;
+        width: 46px; height: 30px; border-radius: 10px;
+        cursor: pointer;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.15s;
+        -webkit-user-select: none; user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        letter-spacing: 1px;
+    }
+    .zoom-reset:hover  { background: linear-gradient(135deg,#7c4dff44,#a855f744); border-color:#a855f7; }
+    .zoom-reset:active { transform: scale(0.88); }
 </style>
+
+<div class="zoom-bar" id="zoomBar">
+    <button class="zoom-btn" id="btnIn"  title="Zoom In">＋</button>
+    <div class="zoom-label" id="zoom-pct">100%</div>
+    <button class="zoom-btn" id="btnOut" title="Zoom Out">－</button>
+    <button class="zoom-reset" id="btnReset">RESET</button>
+</div>
+
+<script>
+(function(){
+    var scale = 1.0;
+    var MIN = 0.4, MAX = 2.8, STEP = 0.12;
+
+    /* Find Streamlit main content — works on all platforms */
+    function getTarget() {
+        return document.querySelector('.main .block-container')
+            || document.querySelector('[data-testid="block-container"]')
+            || document.querySelector('.block-container')
+            || document.querySelector('.main');
+    }
+
+    function applyZoom() {
+        var el = getTarget();
+        if (el) {
+            el.style.transformOrigin = 'top center';
+            el.style.transform = 'scale(' + scale.toFixed(2) + ')';
+            /* Keep layout from collapsing on zoom out */
+            if (scale < 1) {
+                el.style.marginBottom = ((scale - 1) * el.scrollHeight) + 'px';
+            } else {
+                el.style.marginBottom = '';
+            }
+        }
+        var lbl = document.getElementById('zoom-pct');
+        if (lbl) lbl.textContent = Math.round(scale * 100) + '%';
+        try { localStorage.setItem('beamZoomV2', scale.toFixed(2)); } catch(e){}
+    }
+
+    function zoomIn()    { scale = Math.min(MAX, parseFloat((scale + STEP).toFixed(2))); applyZoom(); }
+    function zoomOut()   { scale = Math.max(MIN, parseFloat((scale - STEP).toFixed(2))); applyZoom(); }
+    function zoomReset() { scale = 1.0; applyZoom(); }
+
+    /* Restore saved zoom */
+    try {
+        var s = parseFloat(localStorage.getItem('beamZoomV2'));
+        if (s && s >= MIN && s <= MAX) scale = s;
+    } catch(e){}
+
+    /* Button wiring — works on mouse + touch */
+    function wire(id, fn) {
+        var btn = document.getElementById(id);
+        if (!btn) return;
+        /* Touch (Android/iOS) */
+        btn.addEventListener('touchstart', function(e){ e.preventDefault(); fn(); }, {passive:false});
+        /* Mouse (Windows/Mac) */
+        btn.addEventListener('mousedown', function(e){ e.preventDefault(); fn(); });
+    }
+
+    /* Keyboard shortcut: Ctrl/Cmd + / - */
+    document.addEventListener('keydown', function(e){
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
+            if (e.key === '-')                  { e.preventDefault(); zoomOut(); }
+            if (e.key === '0')                  { e.preventDefault(); zoomReset(); }
+        }
+    });
+
+    /* Init after Streamlit renders */
+    function init() {
+        wire('btnIn',    zoomIn);
+        wire('btnOut',   zoomOut);
+        wire('btnReset', zoomReset);
+        applyZoom();
+    }
+
+    /* Multiple retries so Streamlit's dynamic DOM is ready */
+    setTimeout(init, 600);
+    setTimeout(applyZoom, 1200);
+    setTimeout(applyZoom, 2500);
+
+    /* Re-apply on any Streamlit re-render */
+    var observer = new MutationObserver(function(){ applyZoom(); });
+    setTimeout(function(){
+        var root = document.querySelector('.main') || document.body;
+        observer.observe(root, {childList:true, subtree:false});
+    }, 1000);
+})();
+</script>
 """, unsafe_allow_html=True)
 
 st.markdown("# 🏗️ 2D Beam Stress & Deflection Simulator Pro")
-st.markdown('<span class="feature-badge">✨ 3D View</span> <span class="feature-badge">🏃 Dynamic Loads</span> <span class="feature-badge">📊 Excel Export</span> <span class="feature-badge">🧱 10 Materials</span>', unsafe_allow_html=True)
+st.markdown("""
+<div style="margin: 8px 0 4px 0;">
+    <span class="feature-badge">✨ 3D View</span>
+    <span class="feature-badge">🏃 Dynamic Loads</span>
+    <span class="feature-badge">📊 Excel Export</span>
+    <span class="feature-badge">🧱 10 Materials</span>
+    <span class="feature-badge">📐 Multi-Units</span>
+    <span class="feature-badge">🔍 Zoom</span>
+    <span class="feature-badge">🎨 Pro UI</span>
+</div>
+""", unsafe_allow_html=True)
 st.markdown("---")
 
 # ════════════════════════════════════════════
