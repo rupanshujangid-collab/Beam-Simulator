@@ -206,54 +206,45 @@ st.markdown("""
 <script>
 (function(){
     var scale = 1.0;
-    var MIN = 0.4, MAX = 2.8, STEP = 0.12;
+    var MIN = 0.4, MAX = 2.8, STEP = 0.15;
 
-    /* Find Streamlit main content — works on all platforms */
     function getTarget() {
-        return document.querySelector('.main .block-container')
+        return document.querySelector('[data-testid="stAppViewBlockContainer"]')
+            || document.querySelector('.main .block-container')
             || document.querySelector('[data-testid="block-container"]')
             || document.querySelector('.block-container')
+            || document.querySelector('.main section')
             || document.querySelector('.main');
     }
 
     function applyZoom() {
         var el = getTarget();
         if (el) {
-            el.style.transformOrigin = 'top center';
+            el.style.transformOrigin = 'top left';
             el.style.transform = 'scale(' + scale.toFixed(2) + ')';
-            /* Keep layout from collapsing on zoom out */
-            if (scale < 1) {
-                el.style.marginBottom = ((scale - 1) * el.scrollHeight) + 'px';
-            } else {
-                el.style.marginBottom = '';
-            }
+            el.style.width = (100 / scale) + '%';
         }
         var lbl = document.getElementById('zoom-pct');
         if (lbl) lbl.textContent = Math.round(scale * 100) + '%';
-        try { localStorage.setItem('beamZoomV2', scale.toFixed(2)); } catch(e){}
+        try { localStorage.setItem('bsZoom', scale.toFixed(2)); } catch(e){}
     }
 
     function zoomIn()    { scale = Math.min(MAX, parseFloat((scale + STEP).toFixed(2))); applyZoom(); }
     function zoomOut()   { scale = Math.max(MIN, parseFloat((scale - STEP).toFixed(2))); applyZoom(); }
     function zoomReset() { scale = 1.0; applyZoom(); }
 
-    /* Restore saved zoom */
     try {
-        var s = parseFloat(localStorage.getItem('beamZoomV2'));
+        var s = parseFloat(localStorage.getItem('bsZoom'));
         if (s && s >= MIN && s <= MAX) scale = s;
     } catch(e){}
 
-    /* Button wiring — works on mouse + touch */
     function wire(id, fn) {
         var btn = document.getElementById(id);
         if (!btn) return;
-        /* Touch (Android/iOS) */
         btn.addEventListener('touchstart', function(e){ e.preventDefault(); fn(); }, {passive:false});
-        /* Mouse (Windows/Mac) */
-        btn.addEventListener('mousedown', function(e){ e.preventDefault(); fn(); });
+        btn.addEventListener('click', function(e){ e.preventDefault(); fn(); });
     }
 
-    /* Keyboard shortcut: Ctrl/Cmd + / - */
     document.addEventListener('keydown', function(e){
         if (e.ctrlKey || e.metaKey) {
             if (e.key === '=' || e.key === '+') { e.preventDefault(); zoomIn(); }
@@ -262,7 +253,6 @@ st.markdown("""
         }
     });
 
-    /* Init after Streamlit renders */
     function init() {
         wire('btnIn',    zoomIn);
         wire('btnOut',   zoomOut);
@@ -270,19 +260,76 @@ st.markdown("""
         applyZoom();
     }
 
-    /* Multiple retries so Streamlit's dynamic DOM is ready */
-    setTimeout(init, 600);
-    setTimeout(applyZoom, 1200);
-    setTimeout(applyZoom, 2500);
-
-    /* Re-apply on any Streamlit re-render */
-    var observer = new MutationObserver(function(){ applyZoom(); });
-    setTimeout(function(){
-        var root = document.querySelector('.main') || document.body;
-        observer.observe(root, {childList:true, subtree:false});
-    }, 1000);
+    setTimeout(init, 800);
+    setTimeout(applyZoom, 1500);
+    setTimeout(applyZoom, 3000);
 })();
 </script>
+
+<style>
+/* ── Attractive Sidebar Colors ── */
+.stSidebar {
+    background: linear-gradient(180deg, #0a0015 0%, #0d0020 50%, #080018 100%) !important;
+    border-right: 1px solid #6366f155 !important;
+}
+
+/* Selectbox */
+.stSidebar [data-testid="stSelectbox"] > div > div {
+    background: linear-gradient(135deg, #1a0a2e, #0d0a2e) !important;
+    border: 1px solid #6366f166 !important;
+    border-radius: 10px !important;
+    color: #e0e0e0 !important;
+}
+
+/* Sliders — neon purple track */
+.stSidebar [data-testid="stSlider"] > div > div > div > div {
+    background: linear-gradient(90deg, #6366f1, #a855f7) !important;
+}
+.stSidebar [data-testid="stSlider"] > div > div > div > div > div {
+    background: #ffffff !important;
+    box-shadow: 0 0 8px #a855f7 !important;
+}
+
+/* Number input */
+.stSidebar [data-testid="stNumberInput"] input {
+    background: #1a0a2e !important;
+    border: 1px solid #6366f166 !important;
+    color: #e0e0e0 !important;
+    border-radius: 8px !important;
+}
+
+/* Slider value text — neon green */
+.stSidebar [data-testid="stSlider"] p {
+    color: #00ffaa !important;
+    font-weight: bold !important;
+    font-size: 15px !important;
+}
+
+/* Section headers */
+.stSidebar h2 {
+    background: linear-gradient(90deg, #a855f7, #6366f1, #00bfff) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    font-size: 18px !important;
+    font-weight: 900 !important;
+}
+.stSidebar h3 {
+    color: #00ffaa !important;
+    border-left: 3px solid #a855f7 !important;
+    padding-left: 8px !important;
+    font-size: 14px !important;
+}
+
+/* Labels */
+.stSidebar label, .stSidebar p {
+    color: #c8b4ff !important;
+}
+
+/* Main background subtle glow */
+.stApp {
+    background: linear-gradient(135deg, #06000f 0%, #0e0118 40%, #050010 100%) !important;
+}
+</style>
 """, unsafe_allow_html=True)
 
 st.markdown("# 🏗️ 2D Beam Stress & Deflection Simulator Pro")
