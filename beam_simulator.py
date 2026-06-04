@@ -1264,7 +1264,7 @@ for mat_name, mat_props in material_data.items():
 
 import pandas as pd
 df_mat = pd.DataFrame(mat_comparison)
-st.dataframe(df_mat.set_index("Material"), use_container_width=True)
+st.dataframe(df_mat.set_index("Material"), width='stretch')
 
 # ════════════════════════════════════════════
 # NEW FEATURE 4: EXCEL EXPORT
