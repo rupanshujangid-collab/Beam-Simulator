@@ -35,33 +35,53 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600&display=swap');
 
-    /* ── Background with animated gradient mesh ── */
+    /* ── Islands Dark / Antigravity Theme ── */
     .stApp {
-        background: linear-gradient(135deg, #020818 0%, #0a1628 30%, #0d1f3c 60%, #050d1a 100%);
+        background: #0e1117;
         color: #e0e0e0;
         font-family: 'Rajdhani', sans-serif;
+        position: relative;
+        overflow-x: hidden;
     }
 
-    /* Animated background grid */
+    /* Deep dark gradient base */
     .stApp::before {
         content: '';
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background-image:
-            linear-gradient(rgba(0,191,255,0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0,191,255,0.03) 1px, transparent 1px);
-        background-size: 40px 40px;
+        background:
+            radial-gradient(ellipse at 0% 0%,   #1a1040 0%, transparent 50%),
+            radial-gradient(ellipse at 100% 0%,  #0a1a2e 0%, transparent 50%),
+            radial-gradient(ellipse at 100% 100%,#1a0a2e 0%, transparent 50%),
+            radial-gradient(ellipse at 0% 100%,  #0a1a1a 0%, transparent 50%),
+            radial-gradient(ellipse at 50% 50%,  #12082a 0%, transparent 70%);
         pointer-events: none; z-index: 0;
-        animation: gridMove 20s linear infinite;
-    }
-    @keyframes gridMove {
-        0% { background-position: 0 0; }
-        100% { background-position: 40px 40px; }
     }
 
-    /* ── Sidebar ── */
+    /* Floating glass panels effect */
+    .stApp::after {
+        content: '';
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background:
+            radial-gradient(ellipse 40% 25% at 20% 35%, rgba(99,102,241,0.08) 0%, transparent 100%),
+            radial-gradient(ellipse 35% 20% at 80% 65%, rgba(139,92,246,0.07) 0%, transparent 100%),
+            radial-gradient(ellipse 50% 30% at 60% 20%, rgba(59,130,246,0.06) 0%, transparent 100%),
+            radial-gradient(ellipse 30% 35% at 35% 80%, rgba(16,185,129,0.05) 0%, transparent 100%);
+        pointer-events: none; z-index: 0;
+        animation: islandsFloat 12s ease-in-out infinite alternate;
+    }
+    @keyframes islandsFloat {
+        0%   { opacity: 0.7; transform: translateY(0px); }
+        50%  { opacity: 1.0; transform: translateY(-6px); }
+        100% { opacity: 0.8; transform: translateY(3px); }
+    }
+
+    /* ── Sidebar — glass panel ── */
     .stSidebar {
-        background: linear-gradient(180deg, #050f20 0%, #0a1628 50%, #080e1d 100%) !important;
-        border-right: 1px solid #00bfff22;
+        background: rgba(15, 12, 30, 0.85) !important;
+        border-right: 1px solid rgba(99,102,241,0.2) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
+        backdrop-filter: blur(20px) !important;
+        box-shadow: 4px 0 30px rgba(99,102,241,0.1) !important;
     }
     .stSidebar .stMarkdown h2 {
         background: linear-gradient(90deg, #00bfff, #a855f7);
@@ -86,19 +106,29 @@ st.markdown("""
         color: #e0e0e0 !important;
     }
 
-    /* ── Metric Cards ── */
+    /* ── Metric Cards — floating glass ── */
     [data-testid="stMetric"] {
-        background: linear-gradient(135deg, #0d2137 0%, #0a1e35 100%);
-        border: 1px solid #00bfff33;
-        border-radius: 12px;
-        padding: 10px 14px;
-        box-shadow: 0 0 15px #00bfff11, inset 0 1px 0 #00bfff22;
-        transition: all 0.3s;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(99,102,241,0.25);
+        border-radius: 16px;
+        padding: 12px 16px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        animation: floatCard 4s ease-in-out infinite alternate;
+    }
+    [data-testid="stMetric"]:nth-child(odd)  { animation-delay: 0s; }
+    [data-testid="stMetric"]:nth-child(even) { animation-delay: 0.5s; }
+    @keyframes floatCard {
+        0%   { transform: translateY(0px);   box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+        100% { transform: translateY(-4px);  box-shadow: 0 16px 40px rgba(99,102,241,0.15); }
     }
     [data-testid="stMetric"]:hover {
-        border-color: #00bfff88;
-        box-shadow: 0 0 25px #00bfff33;
-        transform: translateY(-2px);
+        border-color: rgba(139,92,246,0.5);
+        background: rgba(99,102,241,0.1);
+        box-shadow: 0 16px 48px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.12);
+        transform: translateY(-6px) !important;
     }
     [data-testid="stMetricValue"] {
         color: #ffffff !important;
@@ -403,6 +433,156 @@ st.markdown("""
         var root = document.querySelector('.main') || document.body;
         observer.observe(root, {childList:true, subtree:false});
     }, 1000);
+})();
+</script>
+
+<!-- ══ ISLANDS DARK CANVAS — floating particles ══ -->
+<canvas id="galaxyCanvas" style="
+    position: fixed; top:0; left:0;
+    width:100%; height:100%;
+    pointer-events:none;
+    z-index:0;
+    opacity:0.9;
+"></canvas>
+
+<script>
+(function(){
+    var canvas = document.getElementById('galaxyCanvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+
+    function resize(){
+        canvas.width  = window.innerWidth;
+        canvas.height = window.innerHeight;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    /* ── Floating Glass Islands ── */
+    var NUM_ISLANDS = 12;
+    var islands = [];
+    var colors = [
+        'rgba(99,102,241,',   // indigo
+        'rgba(139,92,246,',   // violet
+        'rgba(59,130,246,',   // blue
+        'rgba(16,185,129,',   // emerald
+        'rgba(245,158,11,',   // amber
+        'rgba(236,72,153,',   // pink
+    ];
+    for (var i = 0; i < NUM_ISLANDS; i++) {
+        islands.push({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            w: Math.random() * 180 + 80,
+            h: Math.random() * 60 + 25,
+            r: 18,
+            alpha: Math.random() * 0.06 + 0.02,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            vy: (Math.random() - 0.5) * 0.25,
+            vx: (Math.random() - 0.5) * 0.12,
+            phase: Math.random() * Math.PI * 2,
+            floatAmp: Math.random() * 8 + 4,
+            floatSpeed: Math.random() * 0.008 + 0.003,
+        });
+    }
+
+    /* ── Tiny floating dots ── */
+    var NUM_DOTS = 60;
+    var dots = [];
+    for (var d = 0; d < NUM_DOTS; d++) {
+        dots.push({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            r: Math.random() * 1.8 + 0.4,
+            alpha: Math.random() * 0.4 + 0.1,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            vy: -(Math.random() * 0.4 + 0.1),  // float upward
+            vx: (Math.random() - 0.5) * 0.15,
+            twinkle: Math.random() * 0.03 + 0.01,
+            phase: Math.random() * Math.PI * 2,
+        });
+    }
+
+    /* ── Connection lines between nearby dots ── */
+    var MAX_DIST = 100;
+
+    var t = 0;
+    function draw() {
+        var W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        /* Floating glass islands */
+        islands.forEach(function(isl){
+            isl.x += isl.vx;
+            isl.y += isl.vy + Math.sin(t * isl.floatSpeed + isl.phase) * 0.3;
+            if (isl.x < -isl.w)  isl.x = W + isl.w;
+            if (isl.x > W + isl.w) isl.x = -isl.w;
+            if (isl.y < -isl.h)  isl.y = H + isl.h;
+            if (isl.y > H + isl.h) isl.y = -isl.h;
+
+            /* Rounded rect glass panel */
+            ctx.save();
+            ctx.globalAlpha = isl.alpha;
+            ctx.beginPath();
+            ctx.roundRect
+                ? ctx.roundRect(isl.x - isl.w/2, isl.y - isl.h/2, isl.w, isl.h, isl.r)
+                : ctx.rect(isl.x - isl.w/2, isl.y - isl.h/2, isl.w, isl.h);
+            var grd = ctx.createLinearGradient(isl.x - isl.w/2, isl.y - isl.h/2, isl.x + isl.w/2, isl.y + isl.h/2);
+            grd.addColorStop(0, isl.color + '0.5)');
+            grd.addColorStop(1, isl.color + '0.05)');
+            ctx.fillStyle = grd;
+            ctx.fill();
+            /* Glass border */
+            ctx.strokeStyle = isl.color + '0.3)';
+            ctx.lineWidth = 0.8;
+            ctx.stroke();
+            ctx.restore();
+        });
+
+        /* Connection lines */
+        for (var i = 0; i < dots.length; i++) {
+            for (var j = i+1; j < dots.length; j++) {
+                var dx = dots[i].x - dots[j].x;
+                var dy = dots[i].y - dots[j].y;
+                var dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < MAX_DIST) {
+                    ctx.save();
+                    ctx.globalAlpha = (1 - dist/MAX_DIST) * 0.12;
+                    ctx.strokeStyle = dots[i].color + '1)';
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.moveTo(dots[i].x, dots[i].y);
+                    ctx.lineTo(dots[j].x, dots[j].y);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+            }
+        }
+
+        /* Floating dots */
+        dots.forEach(function(dot){
+            dot.x += dot.vx;
+            dot.y += dot.vy;
+            if (dot.y < -5)  dot.y = H + 5;
+            if (dot.x < -5)  dot.x = W + 5;
+            if (dot.x > W+5) dot.x = -5;
+
+            var tw = Math.sin(t * dot.twinkle + dot.phase) * 0.3 + 0.7;
+            ctx.save();
+            ctx.globalAlpha = dot.alpha * tw;
+            ctx.fillStyle = dot.color + '1)';
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = dot.color + '1)';
+            ctx.beginPath();
+            ctx.arc(dot.x, dot.y, dot.r, 0, Math.PI*2);
+            ctx.fill();
+            ctx.restore();
+        });
+
+        t++;
+        requestAnimationFrame(draw);
+    }
+    draw();
 })();
 </script>
 """, unsafe_allow_html=True)
