@@ -445,153 +445,60 @@ st.markdown("""
 })();
 </script>
 
-<!-- ══ ISLANDS DARK CANVAS — floating particles ══ -->
-<canvas id="galaxyCanvas" style="
-    position: fixed; top:0; left:0;
-    width:100%; height:100%;
-    pointer-events:none;
-    z-index:-1;
-    opacity:0.9;
-"></canvas>
+<!-- ══ CSS FLOATING ORBS — pure CSS, no canvas ══ -->
+<div id="floatingOrbs" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:hidden;">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+  <div class="orb orb3"></div>
+  <div class="orb orb4"></div>
+  <div class="orb orb5"></div>
+  <div class="orb orb6"></div>
+</div>
+
+<style>
+.orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0.25;
+    animation: floatOrb linear infinite;
+}
+.orb1 { width:400px;height:400px;background:radial-gradient(circle,#6366f1,transparent 70%);top:10%;left:5%;animation-duration:18s;animation-delay:0s; }
+.orb2 { width:300px;height:300px;background:radial-gradient(circle,#8b5cf6,transparent 70%);top:60%;left:70%;animation-duration:22s;animation-delay:-5s; }
+.orb3 { width:350px;height:350px;background:radial-gradient(circle,#3b82f6,transparent 70%);top:30%;left:55%;animation-duration:20s;animation-delay:-8s; }
+.orb4 { width:250px;height:250px;background:radial-gradient(circle,#10b981,transparent 70%);top:75%;left:20%;animation-duration:25s;animation-delay:-3s; }
+.orb5 { width:280px;height:280px;background:radial-gradient(circle,#ec4899,transparent 70%);top:5%;left:75%;animation-duration:19s;animation-delay:-12s; }
+.orb6 { width:200px;height:200px;background:radial-gradient(circle,#f59e0b,transparent 70%);top:45%;left:35%;animation-duration:28s;animation-delay:-7s; }
+
+@keyframes floatOrb {
+    0%   { transform: translateY(0px)   translateX(0px)   scale(1); }
+    20%  { transform: translateY(-40px) translateX(20px)  scale(1.05); }
+    40%  { transform: translateY(-20px) translateX(-30px) scale(0.95); }
+    60%  { transform: translateY(-60px) translateX(15px)  scale(1.08); }
+    80%  { transform: translateY(-30px) translateX(-20px) scale(0.98); }
+    100% { transform: translateY(0px)   translateX(0px)   scale(1); }
+}
+
+/* Make sure content is always on top of orbs */
+.main, .main .block-container,
+[data-testid="stAppViewContainer"] > section,
+[data-testid="block-container"] {
+    position: relative !important;
+    z-index: 2 !important;
+}
+.stSidebar {
+    z-index: 3 !important;
+}
+#zoomBar {
+    z-index: 99999 !important;
+}
+</style>
 
 <script>
 (function(){
-    var canvas = document.getElementById('galaxyCanvas');
-    if (!canvas) return;
-    var ctx = canvas.getContext('2d');
+    /* dummy so rest of code still works */
+    var canvas = null;
 
-    function resize(){
-        canvas.width  = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener('resize', resize);
-
-    /* ── Floating Glass Islands ── */
-    var NUM_ISLANDS = 12;
-    var islands = [];
-    var colors = [
-        'rgba(99,102,241,',   // indigo
-        'rgba(139,92,246,',   // violet
-        'rgba(59,130,246,',   // blue
-        'rgba(16,185,129,',   // emerald
-        'rgba(245,158,11,',   // amber
-        'rgba(236,72,153,',   // pink
-    ];
-    for (var i = 0; i < NUM_ISLANDS; i++) {
-        islands.push({
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
-            w: Math.random() * 180 + 80,
-            h: Math.random() * 60 + 25,
-            r: 18,
-            alpha: Math.random() * 0.06 + 0.02,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            vy: (Math.random() - 0.5) * 0.25,
-            vx: (Math.random() - 0.5) * 0.12,
-            phase: Math.random() * Math.PI * 2,
-            floatAmp: Math.random() * 8 + 4,
-            floatSpeed: Math.random() * 0.008 + 0.003,
-        });
-    }
-
-    /* ── Tiny floating dots ── */
-    var NUM_DOTS = 60;
-    var dots = [];
-    for (var d = 0; d < NUM_DOTS; d++) {
-        dots.push({
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
-            r: Math.random() * 1.8 + 0.4,
-            alpha: Math.random() * 0.4 + 0.1,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            vy: -(Math.random() * 0.4 + 0.1),  // float upward
-            vx: (Math.random() - 0.5) * 0.15,
-            twinkle: Math.random() * 0.03 + 0.01,
-            phase: Math.random() * Math.PI * 2,
-        });
-    }
-
-    /* ── Connection lines between nearby dots ── */
-    var MAX_DIST = 100;
-
-    var t = 0;
-    function draw() {
-        var W = canvas.width, H = canvas.height;
-        ctx.clearRect(0, 0, W, H);
-
-        /* Floating glass islands */
-        islands.forEach(function(isl){
-            isl.x += isl.vx;
-            isl.y += isl.vy + Math.sin(t * isl.floatSpeed + isl.phase) * 0.3;
-            if (isl.x < -isl.w)  isl.x = W + isl.w;
-            if (isl.x > W + isl.w) isl.x = -isl.w;
-            if (isl.y < -isl.h)  isl.y = H + isl.h;
-            if (isl.y > H + isl.h) isl.y = -isl.h;
-
-            /* Rounded rect glass panel */
-            ctx.save();
-            ctx.globalAlpha = isl.alpha;
-            ctx.beginPath();
-            ctx.roundRect
-                ? ctx.roundRect(isl.x - isl.w/2, isl.y - isl.h/2, isl.w, isl.h, isl.r)
-                : ctx.rect(isl.x - isl.w/2, isl.y - isl.h/2, isl.w, isl.h);
-            var grd = ctx.createLinearGradient(isl.x - isl.w/2, isl.y - isl.h/2, isl.x + isl.w/2, isl.y + isl.h/2);
-            grd.addColorStop(0, isl.color + '0.5)');
-            grd.addColorStop(1, isl.color + '0.05)');
-            ctx.fillStyle = grd;
-            ctx.fill();
-            /* Glass border */
-            ctx.strokeStyle = isl.color + '0.3)';
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
-            ctx.restore();
-        });
-
-        /* Connection lines */
-        for (var i = 0; i < dots.length; i++) {
-            for (var j = i+1; j < dots.length; j++) {
-                var dx = dots[i].x - dots[j].x;
-                var dy = dots[i].y - dots[j].y;
-                var dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist < MAX_DIST) {
-                    ctx.save();
-                    ctx.globalAlpha = (1 - dist/MAX_DIST) * 0.12;
-                    ctx.strokeStyle = dots[i].color + '1)';
-                    ctx.lineWidth = 0.5;
-                    ctx.beginPath();
-                    ctx.moveTo(dots[i].x, dots[i].y);
-                    ctx.lineTo(dots[j].x, dots[j].y);
-                    ctx.stroke();
-                    ctx.restore();
-                }
-            }
-        }
-
-        /* Floating dots */
-        dots.forEach(function(dot){
-            dot.x += dot.vx;
-            dot.y += dot.vy;
-            if (dot.y < -5)  dot.y = H + 5;
-            if (dot.x < -5)  dot.x = W + 5;
-            if (dot.x > W+5) dot.x = -5;
-
-            var tw = Math.sin(t * dot.twinkle + dot.phase) * 0.3 + 0.7;
-            ctx.save();
-            ctx.globalAlpha = dot.alpha * tw;
-            ctx.fillStyle = dot.color + '1)';
-            ctx.shadowBlur = 6;
-            ctx.shadowColor = dot.color + '1)';
-            ctx.beginPath();
-            ctx.arc(dot.x, dot.y, dot.r, 0, Math.PI*2);
-            ctx.fill();
-            ctx.restore();
-        });
-
-        t++;
-        requestAnimationFrame(draw);
-    }
-    draw();
 })();
 </script>
 """, unsafe_allow_html=True)
