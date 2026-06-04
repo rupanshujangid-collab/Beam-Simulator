@@ -44,6 +44,15 @@ st.markdown("""
         overflow-x: hidden;
     }
 
+    /* Make sure all Streamlit content is above canvas */
+    .main, .main .block-container,
+    [data-testid="stAppViewContainer"] > section,
+    [data-testid="block-container"],
+    .stSidebar, header {
+        position: relative !important;
+        z-index: 10 !important;
+    }
+
     /* Deep dark gradient base */
     .stApp::before {
         content: '';
@@ -54,7 +63,7 @@ st.markdown("""
             radial-gradient(ellipse at 100% 100%,#1a0a2e 0%, transparent 50%),
             radial-gradient(ellipse at 0% 100%,  #0a1a1a 0%, transparent 50%),
             radial-gradient(ellipse at 50% 50%,  #12082a 0%, transparent 70%);
-        pointer-events: none; z-index: 0;
+        pointer-events: none; z-index: -2;
     }
 
     /* Floating glass panels effect */
@@ -66,7 +75,7 @@ st.markdown("""
             radial-gradient(ellipse 35% 20% at 80% 65%, rgba(139,92,246,0.07) 0%, transparent 100%),
             radial-gradient(ellipse 50% 30% at 60% 20%, rgba(59,130,246,0.06) 0%, transparent 100%),
             radial-gradient(ellipse 30% 35% at 35% 80%, rgba(16,185,129,0.05) 0%, transparent 100%);
-        pointer-events: none; z-index: 0;
+        pointer-events: none; z-index: -2;
         animation: islandsFloat 12s ease-in-out infinite alternate;
     }
     @keyframes islandsFloat {
@@ -441,7 +450,7 @@ st.markdown("""
     position: fixed; top:0; left:0;
     width:100%; height:100%;
     pointer-events:none;
-    z-index:0;
+    z-index:-1;
     opacity:0.9;
 "></canvas>
 
