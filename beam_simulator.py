@@ -444,63 +444,6 @@ st.markdown("""
     }, 1000);
 })();
 </script>
-
-<!-- ══ CSS FLOATING ORBS — pure CSS, no canvas ══ -->
-<div id="floatingOrbs" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;overflow:hidden;">
-  <div class="orb orb1"></div>
-  <div class="orb orb2"></div>
-  <div class="orb orb3"></div>
-  <div class="orb orb4"></div>
-  <div class="orb orb5"></div>
-  <div class="orb orb6"></div>
-</div>
-
-<style>
-.orb {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(60px);
-    opacity: 0.25;
-    animation: floatOrb linear infinite;
-}
-.orb1 { width:400px;height:400px;background:radial-gradient(circle,#6366f1,transparent 70%);top:10%;left:5%;animation-duration:18s;animation-delay:0s; }
-.orb2 { width:300px;height:300px;background:radial-gradient(circle,#8b5cf6,transparent 70%);top:60%;left:70%;animation-duration:22s;animation-delay:-5s; }
-.orb3 { width:350px;height:350px;background:radial-gradient(circle,#3b82f6,transparent 70%);top:30%;left:55%;animation-duration:20s;animation-delay:-8s; }
-.orb4 { width:250px;height:250px;background:radial-gradient(circle,#10b981,transparent 70%);top:75%;left:20%;animation-duration:25s;animation-delay:-3s; }
-.orb5 { width:280px;height:280px;background:radial-gradient(circle,#ec4899,transparent 70%);top:5%;left:75%;animation-duration:19s;animation-delay:-12s; }
-.orb6 { width:200px;height:200px;background:radial-gradient(circle,#f59e0b,transparent 70%);top:45%;left:35%;animation-duration:28s;animation-delay:-7s; }
-
-@keyframes floatOrb {
-    0%   { transform: translateY(0px)   translateX(0px)   scale(1); }
-    20%  { transform: translateY(-40px) translateX(20px)  scale(1.05); }
-    40%  { transform: translateY(-20px) translateX(-30px) scale(0.95); }
-    60%  { transform: translateY(-60px) translateX(15px)  scale(1.08); }
-    80%  { transform: translateY(-30px) translateX(-20px) scale(0.98); }
-    100% { transform: translateY(0px)   translateX(0px)   scale(1); }
-}
-
-/* Make sure content is always on top of orbs */
-.main, .main .block-container,
-[data-testid="stAppViewContainer"] > section,
-[data-testid="block-container"] {
-    position: relative !important;
-    z-index: 2 !important;
-}
-.stSidebar {
-    z-index: 3 !important;
-}
-#zoomBar {
-    z-index: 99999 !important;
-}
-</style>
-
-<script>
-(function(){
-    /* dummy so rest of code still works */
-    var canvas = null;
-
-})();
-</script>
 """, unsafe_allow_html=True)
 
 st.markdown("# 🏗️ 2D Beam Stress & Deflection Simulator Pro")
