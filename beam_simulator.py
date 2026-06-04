@@ -35,62 +35,17 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600&display=swap');
 
-    /* ── Islands Dark / Antigravity Theme ── */
+    /* ── Base ── */
     .stApp {
         background: #0e1117;
         color: #e0e0e0;
         font-family: 'Rajdhani', sans-serif;
-        position: relative;
-        overflow-x: hidden;
     }
 
-    /* Make sure all Streamlit content is above canvas */
-    .main, .main .block-container,
-    [data-testid="stAppViewContainer"] > section,
-    [data-testid="block-container"],
-    .stSidebar, header {
-        position: relative !important;
-        z-index: 10 !important;
-    }
-
-    /* Deep dark gradient base */
-    .stApp::before {
-        content: '';
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background:
-            radial-gradient(ellipse at 0% 0%,   #1a1040 0%, transparent 50%),
-            radial-gradient(ellipse at 100% 0%,  #0a1a2e 0%, transparent 50%),
-            radial-gradient(ellipse at 100% 100%,#1a0a2e 0%, transparent 50%),
-            radial-gradient(ellipse at 0% 100%,  #0a1a1a 0%, transparent 50%),
-            radial-gradient(ellipse at 50% 50%,  #12082a 0%, transparent 70%);
-        pointer-events: none; z-index: -2;
-    }
-
-    /* Floating glass panels effect */
-    .stApp::after {
-        content: '';
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background:
-            radial-gradient(ellipse 40% 25% at 20% 35%, rgba(99,102,241,0.08) 0%, transparent 100%),
-            radial-gradient(ellipse 35% 20% at 80% 65%, rgba(139,92,246,0.07) 0%, transparent 100%),
-            radial-gradient(ellipse 50% 30% at 60% 20%, rgba(59,130,246,0.06) 0%, transparent 100%),
-            radial-gradient(ellipse 30% 35% at 35% 80%, rgba(16,185,129,0.05) 0%, transparent 100%);
-        pointer-events: none; z-index: -2;
-        animation: islandsFloat 12s ease-in-out infinite alternate;
-    }
-    @keyframes islandsFloat {
-        0%   { opacity: 0.7; transform: translateY(0px); }
-        50%  { opacity: 1.0; transform: translateY(-6px); }
-        100% { opacity: 0.8; transform: translateY(3px); }
-    }
-
-    /* ── Sidebar — glass panel ── */
+    /* ── Sidebar ── */
     .stSidebar {
-        background: rgba(15, 12, 30, 0.85) !important;
+        background: rgba(15, 12, 30, 0.95) !important;
         border-right: 1px solid rgba(99,102,241,0.2) !important;
-        -webkit-backdrop-filter: blur(20px) !important;
-        backdrop-filter: blur(20px) !important;
-        box-shadow: 4px 0 30px rgba(99,102,241,0.1) !important;
     }
     .stSidebar .stMarkdown h2 {
         background: linear-gradient(90deg, #00bfff, #a855f7);
@@ -104,50 +59,27 @@ st.markdown("""
         font-size: 13px !important;
     }
 
-    /* ── Sidebar widgets ── */
-    .stSidebar .stSlider > div > div > div {
-        background: linear-gradient(90deg, #00bfff, #a855f7) !important;
-    }
-    .stSidebar .stSelectbox > div > div {
-        background: #0d2137 !important;
-        border: 1px solid #00bfff44 !important;
-        border-radius: 8px !important;
-        color: #e0e0e0 !important;
-    }
-
-    /* ── Metric Cards — floating glass ── */
+    /* ── Metric Cards ── */
     [data-testid="stMetric"] {
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(99,102,241,0.25);
         border-radius: 16px;
         padding: 12px 16px;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
-        -webkit-backdrop-filter: blur(12px);
-        backdrop-filter: blur(12px);
-        transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+        transition: all 0.3s;
         animation: floatCard 4s ease-in-out infinite alternate;
     }
-    [data-testid="stMetric"]:nth-child(odd)  { animation-delay: 0s; }
-    [data-testid="stMetric"]:nth-child(even) { animation-delay: 0.5s; }
     @keyframes floatCard {
-        0%   { transform: translateY(0px);   box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
-        100% { transform: translateY(-4px);  box-shadow: 0 16px 40px rgba(99,102,241,0.15); }
-    }
-    [data-testid="stMetric"]:hover {
-        border-color: rgba(139,92,246,0.5);
-        background: rgba(99,102,241,0.1);
-        box-shadow: 0 16px 48px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.12);
-        transform: translateY(-6px) !important;
+        0%   { transform: translateY(0px); }
+        100% { transform: translateY(-4px); }
     }
     [data-testid="stMetricValue"] {
         color: #ffffff !important;
         font-size: 1.3rem !important;
         font-family: 'Orbitron', monospace !important;
-        text-shadow: 0 0 10px #00bfff88;
     }
     [data-testid="stMetricLabel"] {
         color: #00bfff !important;
-        font-family: 'Rajdhani', sans-serif !important;
         font-weight: 600 !important;
         letter-spacing: 1px;
     }
@@ -158,202 +90,109 @@ st.markdown("""
         background: linear-gradient(90deg, #00bfff 0%, #a855f7 50%, #00d4aa 100%);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         font-size: 2rem !important;
-        text-shadow: none;
         letter-spacing: 2px;
-        animation: titleGlow 3s ease-in-out infinite alternate;
-    }
-    @keyframes titleGlow {
-        from { filter: drop-shadow(0 0 8px #00bfff88); }
-        to   { filter: drop-shadow(0 0 20px #a855f788); }
     }
     h2, h3 {
-        font-family: 'Rajdhani', sans-serif !important;
         background: linear-gradient(90deg, #00d4aa, #00bfff);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        letter-spacing: 1px;
     }
 
     /* ── Feature Badges ── */
     .feature-badge {
-        background: linear-gradient(135deg, #00bfff15, #a855f715);
-        border: 1px solid;
-        border-image: linear-gradient(90deg, #00bfff, #a855f7) 1;
-        border-radius: 20px !important;
+        background: rgba(0,191,255,0.08);
+        border: 1px solid #00bfff55;
+        border-radius: 20px;
         padding: 5px 14px;
         font-size: 12px;
-        font-family: 'Rajdhani', sans-serif;
         font-weight: 600;
-        letter-spacing: 1px;
         display: inline-block; margin: 3px;
-        background-clip: padding-box;
         color: #00d4aa;
-        box-shadow: 0 0 10px #00bfff22;
-        transition: all 0.3s;
     }
-    .feature-badge:hover { box-shadow: 0 0 20px #00bfff55; }
 
     /* ── Safe / Unsafe boxes ── */
     .safe-box {
-        background: linear-gradient(135deg, #00c85318, #00d4aa12);
+        background: rgba(0,200,83,0.1);
         border: 2px solid #00c853;
         border-radius: 14px; padding: 14px 22px;
         font-size: 16px; font-weight: bold; color: #00c853;
-        font-family: 'Rajdhani', sans-serif;
-        box-shadow: 0 0 20px #00c85333, inset 0 1px 0 #00c85344;
-        animation: safePulse 2s ease-in-out infinite;
-    }
-    @keyframes safePulse {
-        0%,100% { box-shadow: 0 0 20px #00c85333; }
-        50%      { box-shadow: 0 0 35px #00c85366; }
     }
     .unsafe-box {
-        background: linear-gradient(135deg, #ff475718, #ff6b3512);
+        background: rgba(255,71,87,0.1);
         border: 2px solid #ff4757;
         border-radius: 14px; padding: 14px 22px;
         font-size: 16px; font-weight: bold; color: #ff4757;
-        font-family: 'Rajdhani', sans-serif;
-        box-shadow: 0 0 20px #ff475733;
-        animation: unsafePulse 1s ease-in-out infinite;
-    }
-    @keyframes unsafePulse {
-        0%,100% { box-shadow: 0 0 20px #ff475744; }
-        50%      { box-shadow: 0 0 40px #ff475799; }
     }
 
     /* ── AI Box ── */
     .ai-box {
-        background: linear-gradient(135deg, #a855f715, #7c4dff12, #00bfff08);
-        border: 1.5px solid;
-        border-image: linear-gradient(135deg, #a855f7, #7c4dff, #00bfff) 1;
+        background: rgba(124,77,255,0.08);
+        border: 1.5px solid #7c4dff55;
         border-radius: 14px; padding: 18px 22px; margin: 8px 0;
-        box-shadow: 0 0 25px #7c4dff22;
-        background-clip: padding-box;
     }
-    .ai-title {
-        font-family: 'Orbitron', monospace;
-        background: linear-gradient(90deg, #a855f7, #7c4dff, #00bfff);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        font-size: 16px; font-weight: bold; margin-bottom: 12px;
-        letter-spacing: 1px;
-    }
-    .ai-suggestion { color: #c8d8e8; font-size: 14px; padding: 4px 0; font-family: 'Rajdhani'; }
-    .ai-warning {
-        color: #ff6b6b; font-size: 14px; font-weight: bold; padding: 4px 0;
-        text-shadow: 0 0 8px #ff4757aa;
-    }
-    .ai-good {
-        color: #00e676; font-size: 14px; padding: 4px 0;
-        text-shadow: 0 0 8px #00c85388;
-    }
+    .ai-title { color: #a855f7; font-size: 16px; font-weight: bold; margin-bottom: 12px; }
+    .ai-suggestion { color: #c8d8e8; font-size: 14px; padding: 4px 0; }
+    .ai-warning { color: #ff6b6b; font-size: 14px; font-weight: bold; padding: 4px 0; }
+    .ai-good { color: #00e676; font-size: 14px; padding: 4px 0; }
 
     /* ── Dynamic box ── */
     .dynamic-box {
-        background: linear-gradient(135deg, #ff670015, #ffd70010);
+        background: rgba(255,103,0,0.08);
         border: 1.5px solid #ff6700;
         border-radius: 12px; padding: 12px 18px; margin: 6px 0;
-        box-shadow: 0 0 15px #ff670033;
-    }
-
-    /* ── Divider ── */
-    hr {
-        border: none;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, #00bfff66, #a855f766, #00d4aa66, transparent);
-        margin: 20px 0;
     }
 
     /* ── Buttons ── */
     .stButton > button, .stDownloadButton > button {
-        background: linear-gradient(135deg, #0d2137, #1b3a5c) !important;
+        background: rgba(13,33,55,0.9) !important;
         border: 1.5px solid #00bfff66 !important;
         color: #00bfff !important;
         border-radius: 10px !important;
-        font-family: 'Rajdhani', sans-serif !important;
         font-weight: 600 !important;
-        letter-spacing: 1px !important;
         transition: all 0.3s !important;
-        box-shadow: 0 0 10px #00bfff22 !important;
     }
     .stButton > button:hover, .stDownloadButton > button:hover {
-        background: linear-gradient(135deg, #00bfff22, #a855f722) !important;
+        background: rgba(0,191,255,0.15) !important;
         border-color: #00bfff !important;
-        box-shadow: 0 0 20px #00bfff55 !important;
-        transform: translateY(-1px) !important;
     }
 
-    /* ── Expander ── */
-    .streamlit-expanderHeader {
-        background: linear-gradient(90deg, #0d2137, #1b3a5c) !important;
-        border: 1px solid #00bfff33 !important;
-        border-radius: 10px !important;
-        color: #00bfff !important;
-    }
-    .streamlit-expanderContent {
-        background: #080e1d !important;
-        border: 1px solid #00bfff22 !important;
-        border-top: none !important;
-    }
-
-    /* ── Dataframe ── */
-    .stDataFrame { border: 1px solid #00bfff33 !important; border-radius: 10px; }
-
-    /* ── Section divider glow line ── */
-    .section-title {
-        background: linear-gradient(90deg, #00bfff, #a855f7, #00d4aa);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        font-family: 'Orbitron', monospace;
-        font-size: 18px; font-weight: 700;
-        letter-spacing: 2px;
-        display: inline-block;
-    }
-
-    /* ── Zoom Controls — cross-platform ── */
+    /* ── Zoom Controls ── */
     .zoom-bar {
         position: fixed; bottom: 24px; right: 20px; z-index: 99999;
         display: flex; flex-direction: column; align-items: center; gap: 6px;
-        background: linear-gradient(180deg, #050f20ee, #0a1628ee);
+        background: rgba(5,15,32,0.95);
         border: 1.5px solid #00bfff44;
         border-radius: 16px; padding: 12px 10px;
-        box-shadow: 0 0 30px #00bfff22, 0 8px 32px #00000099;
-        -webkit-backdrop-filter: blur(10px);
-        backdrop-filter: blur(10px);
-        touch-action: none;
+        box-shadow: 0 0 30px rgba(0,191,255,0.15);
     }
     .zoom-btn {
-        background: linear-gradient(135deg, #0d2137, #1b3a5c);
+        background: rgba(13,33,55,0.9);
         border: 1.5px solid #00bfff66;
         color: #00bfff; font-size: 22px; font-weight: bold;
         width: 46px; height: 46px; border-radius: 12px;
-        cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
         transition: all 0.15s;
         -webkit-user-select: none; user-select: none;
         -webkit-tap-highlight-color: transparent;
-        box-shadow: 0 0 10px #00bfff22;
-        /* Make tap targets big enough for mobile */
         min-width: 46px; min-height: 46px;
     }
-    .zoom-btn:hover  { background: linear-gradient(135deg,#00bfff33,#a855f733); border-color:#00bfff; box-shadow:0 0 20px #00bfff55; }
+    .zoom-btn:hover  { background: rgba(0,191,255,0.2); border-color:#00bfff; }
     .zoom-btn:active { transform: scale(0.88); }
     .zoom-label {
         color: #00d4aa; font-size: 12px; font-weight: bold;
-        font-family: 'Orbitron', monospace;
-        text-align: center; letter-spacing: 1px;
-        text-shadow: 0 0 8px #00d4aa88;
+        font-family: 'Orbitron', monospace; text-align: center;
     }
     .zoom-reset {
-        background: linear-gradient(135deg, #7c4dff22, #a855f722);
+        background: rgba(124,77,255,0.2);
         border: 1.5px solid #a855f766;
         color: #a855f7; font-size: 10px; font-weight: bold;
         width: 46px; height: 30px; border-radius: 10px;
-        cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; display: flex; align-items: center; justify-content: center;
         transition: all 0.15s;
         -webkit-user-select: none; user-select: none;
         -webkit-tap-highlight-color: transparent;
         letter-spacing: 1px;
     }
-    .zoom-reset:hover  { background: linear-gradient(135deg,#7c4dff44,#a855f744); border-color:#a855f7; }
+    .zoom-reset:hover  { background: rgba(168,85,247,0.3); }
     .zoom-reset:active { transform: scale(0.88); }
 </style>
 
