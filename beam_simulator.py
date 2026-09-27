@@ -350,7 +350,40 @@ st.markdown("---")
 # SIDEBAR
 # ════════════════════════════════════════════
 st.sidebar.markdown("## ⚙️ Beam Parameters")
-beam_type = st.sidebar.selectbox("🏛️ Beam Type", ["Simply Supported","Cantilever","Fixed-Fixed"])
+
+# ── Support Conditions (any combination at each end) ──
+st.sidebar.markdown("### 🏛️ Support Conditions")
+SUPPORT_OPTIONS = ["Fixed", "Pinned", "Roller", "Free"]
+SUPPORT_ICON = {"Fixed": "🧱", "Pinned": "📍", "Roller": "⚪", "Free": "🕳️"}
+support_A = st.sidebar.selectbox("Support at A (x=0)", SUPPORT_OPTIONS, index=1,
+                                  format_func=lambda s: f"{SUPPORT_ICON[s]} {s}")
+support_B = st.sidebar.selectbox("Support at B (x=L)", SUPPORT_OPTIONS, index=2,
+                                  format_func=lambda s: f"{SUPPORT_ICON[s]} {s}")
+
+def _constraint_count(s):
+    return {"Fixed": 2, "Pinned": 1, "Roller": 1, "Free": 0}[s]
+
+if _constraint_count(support_A) + _constraint_count(support_B) < 2:
+    st.error("⚠️ Invalid support combination — with these supports the beam is a "
+             "**mechanism** (unstable, not enough restraint). Pick at least a "
+             "Pinned/Roller/Fixed support at each end, with at least one Fixed "
+             "if the other end is Free.")
+    st.stop()
+
+# Friendly label used everywhere else in the app (titles, reports, AI notes)
+_PRESET_NAMES = {
+    ("Pinned","Roller"): "Simply Supported", ("Roller","Pinned"): "Simply Supported",
+    ("Pinned","Pinned"): "Simply Supported", ("Roller","Roller"): "Simply Supported",
+    ("Fixed","Free"): "Cantilever",
+    ("Fixed","Fixed"): "Fixed-Fixed",
+    ("Fixed","Pinned"): "Propped Cantilever (Fixed-Pinned)",
+    ("Fixed","Roller"): "Propped Cantilever (Fixed-Roller)",
+    ("Pinned","Fixed"): "Propped Cantilever (Pinned-Fixed)",
+    ("Roller","Fixed"): "Propped Cantilever (Roller-Fixed)",
+    ("Free","Fixed"): "Cantilever (reversed)",
+}
+beam_type = _PRESET_NAMES.get((support_A, support_B), f"{support_A} A – {support_B} B")
+st.sidebar.caption(f"➡️ Configuration: **{beam_type}**")
 
 # ── Unit System ──
 st.sidebar.markdown("### 📐 Unit System")
@@ -390,12 +423,23 @@ for i in range(int(n_loads)):
     a_disp = st.sidebar.slider(f"Position {i+1} ({length_unit})", 0.0, L_display, default_pos, L_step, key=f"a{i}")
     loads.append((p_disp * F_CONV, a_disp * L_CONV))  # store in SI
 
-st.sidebar.markdown("### 〰️ UDL")
+st.sidebar.markdown("### 〰️ UDL (Custom Length)")
 udl_unit_label = f"{force_unit}/{length_unit}"
 w_max  = {"N": 2000, "kN": 20}[force_unit]
 w_step = {"N": 50,   "kN": 1}[force_unit]
 w_disp = st.sidebar.slider(f"UDL Intensity ({udl_unit_label})", 0, w_max, 0, w_step)
 w = w_disp * F_CONV / L_CONV  # convert to N/m internally
+
+if w > 0:
+    udl_x1_disp, udl_x2_disp = st.sidebar.slider(
+        f"UDL Span ({length_unit}) — start to end", 0.0, L_display, (0.0, L_display), L_step)
+else:
+    udl_x1_disp, udl_x2_disp = 0.0, L_display
+
+udl_x1 = udl_x1_disp * L_CONV
+udl_x2 = udl_x2_disp * L_CONV
+if udl_x2 <= udl_x1:
+    udl_x2 = udl_x1 + 1e-6  # guard against zero-length span
 
 # ── NEW: Dynamic/Moving Load ──
 st.sidebar.markdown("### 🚗 Dynamic / Moving Load")
@@ -458,59 +502,120 @@ def get_section_properties(section_type, sidebar):
 I, c_dist, h_total, b_total, dims = get_section_properties(section_type, st.sidebar)
 
 # ════════════════════════════════════════════
-# CALCULATIONS
+# GENERAL BEAM SOLVER — any support combination (Fixed/Pinned/Roller/Free
+# at either end) + point loads + a UDL over any custom [x1,x2] span.
+#
+# Uses a 2-node Euler-Bernoulli beam finite-element (exact for point loads
+# placed at nodes + consistent-load UDL), meshed only at the beam ends,
+# load points and UDL boundaries — this is exact, not an approximation,
+# and naturally handles both determinate AND indeterminate supports
+# (e.g. Fixed-Pinned "propped cantilever") without needing a separate
+# closed-form formula for every combination.
 # ════════════════════════════════════════════
+from scipy.integrate import cumulative_trapezoid
+
 x = np.linspace(0, L, 2000)
 colors_load = ['#ff4757','#ffd700','#ff6b35','#7c4dff','#00d4aa','#00bfff','#ff69b4','#adff2f']
 
-if beam_type == "Simply Supported":
-    RA = sum((P*(L-a))/L for P,a in loads) + w*L/2
-    RB = sum((P*a)/L     for P,a in loads) + w*L/2
-    V  = np.full_like(x, RA)
-    for P,a in loads: V -= P*(x >= a).astype(float)
-    V -= w*x
-    M  = RA*x - 0.5*w*x**2
-    for P,a in loads: M -= P*np.maximum(x-a, 0)
-    y  = (w*x)/(24*E_val*I)*(L**3-2*L*x**2+x**3)
-    for P,a in loads:
-        bv = L-a
-        y += np.where(x<a,
-            (P*bv*x)/(6*E_val*I*L)*(L**2-bv**2-x**2),
-            (P*a*(L-x))/(6*E_val*I*L)*(2*L*(L-x)-a**2-(L-x)**2))
+def _elem_stiffness(EI, Le):
+    return EI/Le**3 * np.array([
+        [12,     6*Le,   -12,     6*Le],
+        [6*Le,  4*Le**2, -6*Le,  2*Le**2],
+        [-12,   -6*Le,    12,    -6*Le],
+        [6*Le,  2*Le**2, -6*Le,  4*Le**2]])
 
-elif beam_type == "Cantilever":
-    RA = sum(P for P,a in loads) + w*L
-    MA_fix = sum(P*(L-a) for P,a in loads) + w*L**2/2
-    RB = 0
-    V  = np.full_like(x, RA)
-    for P,a in loads: V -= P*(x >= a).astype(float)
-    V -= w*x
-    M  = -MA_fix + RA*x - 0.5*w*x**2
-    for P,a in loads: M -= P*np.maximum(x-a, 0)
-    y  = np.zeros_like(x)
-    for P,a in loads:
-        y += np.where(x<=a,
-            (P*x**2)/(6*E_val*I)*(3*a-x),
-            (P*a**2)/(6*E_val*I)*(3*x-a))
-    y += (w*x**2)/(24*E_val*I)*(x**2-4*L*x+6*L**2)
-    y  = y - y[0]
+def _elem_udl_load(w_local, Le):
+    return w_local*Le/12 * np.array([6, Le, 6, -Le])
 
-elif beam_type == "Fixed-Fixed":
-    RA = sum((P*(L-a)**2*(2*a+L))/L**3 for P,a in loads) + w*L/2
-    RB = sum((P*a**2*(3*L-2*a))/L**3   for P,a in loads) + w*L/2
-    MA_fix = sum((P*a*(L-a)**2)/L**2   for P,a in loads) + w*L**2/12
-    V  = np.full_like(x, RA)
-    for P,a in loads: V -= P*(x >= a).astype(float)
-    V -= w*x
-    M  = -MA_fix + RA*x - 0.5*w*x**2
-    for P,a in loads: M -= P*np.maximum(x-a, 0)
-    y  = np.zeros_like(x)
-    for P,a in loads:
-        bv = L-a
-        y += np.where(x<a,
-            (P*bv**2*x**2)/(6*E_val*I*L**3)*(3*a*L-x*(3*a+bv)),
-            (P*a**2*(L-x)**2)/(6*E_val*I*L**3)*(3*bv*L-(L-x)*(3*bv+a)))
-    y += (w*x**2*(L-x)**2)/(24*E_val*I)
+def solve_reactions(sA, sB, L, loads, w, x1u, x2u, E, I):
+    """Returns RA, MA, RB, MB (moment reactions are 0 unless that end is Fixed)."""
+    EI = E*I
+    pts = {0.0, round(L, 9)}
+    for P, a in loads:
+        if P > 0:
+            pts.add(round(min(max(a, 0), L), 9))
+    if w > 0:
+        pts.add(round(min(max(x1u, 0), L), 9))
+        pts.add(round(min(max(x2u, 0), L), 9))
+    nodes = sorted(pts)
+    n = len(nodes)
+    ndof = 2*n
+    K = np.zeros((ndof, ndof))
+    F = np.zeros(ndof)
+
+    for e in range(n-1):
+        Le = nodes[e+1] - nodes[e]
+        if Le <= 1e-9:
+            continue
+        ke = _elem_stiffness(EI, Le)
+        dofs = [2*e, 2*e+1, 2*e+2, 2*e+3]
+        for i in range(4):
+            for j in range(4):
+                K[dofs[i], dofs[j]] += ke[i, j]
+        if w > 0 and nodes[e] >= x1u-1e-9 and nodes[e+1] <= x2u+1e-9:
+            fe = _elem_udl_load(w, Le)
+            for i in range(4):
+                F[dofs[i]] += fe[i]
+
+    for P, a in loads:
+        if P > 0:
+            idx = nodes.index(round(min(max(a, 0), L), 9))
+            F[2*idx] += P
+
+    fixed_dofs = []
+    if sA == "Fixed":            fixed_dofs += [0, 1]
+    elif sA in ("Pinned","Roller"): fixed_dofs += [0]
+    if sB == "Fixed":            fixed_dofs += [ndof-2, ndof-1]
+    elif sB in ("Pinned","Roller"): fixed_dofs += [ndof-2]
+
+    free_dofs = [d for d in range(ndof) if d not in fixed_dofs]
+    d_free = np.linalg.solve(K[np.ix_(free_dofs, free_dofs)], F[free_dofs])
+    d = np.zeros(ndof)
+    for i, dof in enumerate(free_dofs):
+        d[dof] = d_free[i]
+    R = K @ d - F  # in the (downward-positive) FE sign convention
+
+    RA = -R[0]        if sA != "Free"   else 0.0
+    MA = -R[1]        if sA == "Fixed"  else 0.0
+    RB = -R[ndof-2]   if sB != "Free"   else 0.0
+    MB = -R[ndof-1]   if sB == "Fixed"  else 0.0
+    return RA, MA, RB, MB
+
+def udl_effect(x_arr, w_val, x1u, x2u):
+    """V(x), M(x) contribution of a UDL w_val acting only over [x1u, x2u]."""
+    if w_val <= 0:
+        return np.zeros_like(x_arr), np.zeros_like(x_arr)
+    xu = np.clip(x_arr, x1u, x2u)
+    length_left = xu - x1u
+    Vc = -w_val * length_left
+    centroid = (x1u + xu) / 2
+    Mc = -w_val * length_left * (x_arr - centroid)
+    return Vc, Mc
+
+RA, MA_fix, RB, MB_fix = solve_reactions(support_A, support_B, L, loads, w, udl_x1, udl_x2, E_val, I)
+
+V = np.full_like(x, RA)
+for P, a in loads: V -= P*(x >= a).astype(float)
+Vc, Mc = udl_effect(x, w, udl_x1, udl_x2)
+V += Vc
+
+M = -MA_fix + RA*x
+for P, a in loads: M -= P*np.maximum(x-a, 0)
+M += Mc
+
+# Deflection: numerically double-integrate M/EI, fixing the 2 integration
+# constants from whichever displacement/rotation conditions the chosen
+# supports impose (v=0 and/or theta=0 at either end).
+phi = cumulative_trapezoid(-M/(E_val*I), x, initial=0)   # candidate theta(x) - theta(0)
+Y   = cumulative_trapezoid(phi, x, initial=0)            # candidate y(x) - y(0) - theta(0)*x
+
+rows, rhs = [], []
+if support_A in ("Fixed","Pinned","Roller"): rows.append([1, 0]);  rhs.append(-Y[0])
+if support_A == "Fixed":                     rows.append([0, 1]);  rhs.append(-phi[0])
+if support_B in ("Fixed","Pinned","Roller"): rows.append([1, L]); rhs.append(-Y[-1])
+if support_B == "Fixed":                     rows.append([0, 1]);  rhs.append(-phi[-1])
+y0, theta0 = np.linalg.lstsq(np.array(rows, dtype=float), np.array(rhs, dtype=float), rcond=None)[0]
+y = y0 + theta0*x + Y
 
 M_max     = max(abs(M))
 y_max     = max(abs(y))*1000
@@ -581,10 +686,12 @@ def ai_suggestions(beam_type,section_type,L,loads,w,E,dims,
         warnings.append("⚠️ Concrete is weak in tension — add steel reinforcement (rebar)!")
     if "Carbon Fiber" in E:
         good.append("✅ Carbon fiber: excellent strength-to-weight ratio for aerospace/high-perf apps")
-    if beam_type == "Simply Supported" and FOS < 2.0:
-        suggestions.append("💡 Consider Fixed-Fixed beam — reduces max moment by ~50%")
-    if beam_type == "Cantilever" and FOS < 2.0:
-        suggestions.append("💡 Cantilever has high moment at fixed end — add intermediate support")
+    is_simply_supported = support_A in ("Pinned","Roller") and support_B in ("Pinned","Roller")
+    is_cantilever = "Free" in (support_A, support_B) and "Fixed" in (support_A, support_B)
+    if is_simply_supported and FOS < 2.0:
+        suggestions.append("💡 Consider fixing one or both ends — reduces max moment significantly")
+    if is_cantilever and FOS < 2.0:
+        suggestions.append("💡 Cantilever has high moment at the fixed end — add an intermediate support (propped cantilever)")
     if len(loads)==1 and loads[0][0]>0:
         if abs(loads[0][1]-L/2) < 0.1:
             good.append("✅ Load at center — symmetric loading condition")
@@ -604,20 +711,20 @@ ax_b.set_facecolor('#0d2137')
 ax_b.set_xlim(-0.8, L+0.8); ax_b.set_ylim(-1.2, 2.8); ax_b.axis('off')
 ax_b.add_patch(plt.Rectangle((0,0.2),L,0.3,color='#1b3a5c',zorder=2))
 ax_b.add_patch(plt.Rectangle((0,0.2),L,0.3,fill=False,edgecolor='#00bfff',lw=2,zorder=3))
-if beam_type == "Simply Supported":
-    ax_b.plot([0],[0.2],'v',color='#00d4aa',markersize=14,zorder=4)
-    ax_b.plot([L],[0.2],'o',color='#00d4aa',markersize=10,zorder=4)
-    ax_b.text(0,-0.3,'A (Pin)',color='#00d4aa',ha='center',fontsize=8)
-    ax_b.text(L,-0.3,'B (Roller)',color='#00d4aa',ha='center',fontsize=8)
-elif beam_type == "Cantilever":
-    ax_b.add_patch(plt.Rectangle((-0.3,-0.1),0.3,0.9,color='#00d4aa',zorder=4))
-    ax_b.text(0,-0.3,'Fixed',color='#00d4aa',ha='center',fontsize=8)
-    ax_b.text(L,-0.3,'Free End',color='#ff4757',ha='center',fontsize=8)
-elif beam_type == "Fixed-Fixed":
-    ax_b.add_patch(plt.Rectangle((-0.3,-0.1),0.3,0.9,color='#00d4aa',zorder=4))
-    ax_b.add_patch(plt.Rectangle((L,-0.1),0.3,0.9,color='#00d4aa',zorder=4))
-    ax_b.text(0,-0.3,'Fixed A',color='#00d4aa',ha='center',fontsize=8)
-    ax_b.text(L,-0.3,'Fixed B',color='#00d4aa',ha='center',fontsize=8)
+def _draw_support(ax, kind, x_pos, is_left):
+    if kind == "Fixed":
+        rx = x_pos-0.3 if is_left else x_pos
+        ax.add_patch(plt.Rectangle((rx,-0.1),0.3,0.9,color='#00d4aa',zorder=4))
+    elif kind == "Pinned":
+        ax.plot([x_pos],[0.2],'v',color='#00d4aa',markersize=14,zorder=4)
+    elif kind == "Roller":
+        ax.plot([x_pos],[0.2],'o',color='#00d4aa',markersize=10,zorder=4)
+    label = kind if kind != "Free" else "Free End"
+    lcolor = '#ff4757' if kind == "Free" else '#00d4aa'
+    ax.text(x_pos,-0.3,label,color=lcolor,ha='center',fontsize=8)
+
+_draw_support(ax_b, support_A, 0, True)
+_draw_support(ax_b, support_B, L, False)
 for i,(P,a) in enumerate(loads):
     if P > 0:
         p_disp_label = P / F_CONV
@@ -626,11 +733,13 @@ for i,(P,a) in enumerate(loads):
         ax_b.text(a,1.75,f'P{i+1}={p_disp_label:.0f}{force_unit}',color=colors_load[i],ha='center',fontsize=8,fontweight='bold')
 if w > 0:
     w_disp_label = w * L_CONV / F_CONV
-    for xi in np.linspace(0.1,L-0.1,14):
+    for xi in np.linspace(udl_x1+0.02,udl_x2-0.02,max(3,int(14*(udl_x2-udl_x1)/L))):
         ax_b.annotate('',xy=(xi,0.5),xytext=(xi,1.1),
             arrowprops=dict(arrowstyle='->',color='#00bfff',lw=1))
-    ax_b.plot([0,L],[1.15,1.15],color='#00bfff',lw=2)
-    ax_b.text(L/2,1.28,f'w={w_disp_label:.1f} {force_unit}/{length_unit}',color='#00bfff',ha='center',fontsize=8)
+    ax_b.plot([udl_x1,udl_x2],[1.15,1.15],color='#00bfff',lw=2)
+    ax_b.text((udl_x1+udl_x2)/2,1.28,
+              f'w={w_disp_label:.1f} {force_unit}/{length_unit} ({udl_x1_disp:.1f}-{udl_x2_disp:.1f}{length_unit})',
+              color='#00bfff',ha='center',fontsize=8)
 ax_b.annotate('',xy=(L,-0.7),xytext=(0,-0.7),
     arrowprops=dict(arrowstyle='<->',color='gray',lw=1))
 ax_b.text(L/2,-1.0,f'L = {L_display}{length_unit}',color='gray',ha='center',fontsize=8)
@@ -826,26 +935,18 @@ if enable_dynamic:
     all_y_defl = []
     
     for pos in pos_arr:
-        if beam_type == "Simply Supported":
-            RA_d = P_moving*(L-pos)/L
-            M_d  = RA_d*x - P_moving*np.maximum(x-pos, 0)
-            y_d  = np.where(x < pos,
-                (P_moving*(L-pos)*x)/(6*E_val*I*L)*(L**2-(L-pos)**2-x**2),
-                (P_moving*pos*(L-x))/(6*E_val*I*L)*(2*L*(L-x)-pos**2-(L-x)**2))
-        elif beam_type == "Cantilever":
-            M_d = np.where(x <= pos, -P_moving*(pos-x), 0)
-            y_d = np.where(x <= pos,
-                (P_moving*x**2)/(6*E_val*I)*(3*pos-x),
-                (P_moving*pos**2)/(6*E_val*I)*(3*x-pos))
-        else:  # Fixed-Fixed
-            bv = L - pos
-            RA_d = P_moving*bv**2*(2*pos+L)/L**3
-            MA_d = P_moving*pos*bv**2/L**2
-            M_d  = -MA_d + RA_d*x - P_moving*np.maximum(x-pos, 0)
-            y_d  = np.where(x < pos,
-                (P_moving*bv**2*x**2)/(6*E_val*I*L**3)*(3*pos*L-x*(3*pos+bv)),
-                (P_moving*pos**2*(L-x)**2)/(6*E_val*I*L**3)*(3*bv*L-(L-x)*(3*bv+pos)))
-        
+        RA_d, MA_d, RB_d, MB_d = solve_reactions(support_A, support_B, L, [(P_moving, pos)], 0, 0, L, E_val, I)
+        M_d = -MA_d + RA_d*x - P_moving*np.maximum(x-pos, 0)
+        phi_d = cumulative_trapezoid(-M_d/(E_val*I), x, initial=0)
+        Y_d   = cumulative_trapezoid(phi_d, x, initial=0)
+        rows_d, rhs_d = [], []
+        if support_A in ("Fixed","Pinned","Roller"): rows_d.append([1,0]); rhs_d.append(-Y_d[0])
+        if support_A == "Fixed":                     rows_d.append([0,1]); rhs_d.append(-phi_d[0])
+        if support_B in ("Fixed","Pinned","Roller"): rows_d.append([1,L]); rhs_d.append(-Y_d[-1])
+        if support_B == "Fixed":                     rows_d.append([0,1]); rhs_d.append(-phi_d[-1])
+        y0_d, th0_d = np.linalg.lstsq(np.array(rows_d,dtype=float), np.array(rhs_d,dtype=float), rcond=None)[0]
+        y_d = y0_d + th0_d*x + Y_d
+
         all_M.append(M_d)
         all_y_defl.append(y_d*1000)
         M_env_max = np.maximum(M_env_max, M_d)
@@ -1068,7 +1169,8 @@ def generate_excel():
     params = [
         ("Beam Type", beam_type), ("Length (m)", L),
         ("Material", E_sel), ("Section Type", section_type),
-        ("UDL (N/m)", w), ("E (GPa)", f"{E_val/1e9:.0f}"),
+        ("UDL (N/m)", w), ("UDL Span (m)", f"{udl_x1:.3f} - {udl_x2:.3f}" if w>0 else "-"),
+        ("E (GPa)", f"{E_val/1e9:.0f}"),
         ("Yield Strength (MPa)", f"{yield_MPa:.0f}"),
         ("Moment of Inertia (m⁴)", f"{I:.4e}"),
         ("Beam Weight (N)", f"{beam_weight:.1f}"),
@@ -1213,7 +1315,7 @@ def generate_pdf(beam_type,L,loads,w,E,section_type,dims,I,c_dist,
     dim_str  = " | ".join([f"{k}={v}" for k,v in dims.items() if k!='y_bar'])
     params = [["Parameter","Value"],
               ["Beam Type",beam_type],["Length",f"{L}m"],
-              ["Loads",load_str],["UDL",f"{w}N/m"],
+              ["Loads",load_str],["UDL",f"{w:.1f}N/m over {udl_x1:.2f}-{udl_x2:.2f}m" if w>0 else "None"],
               ["Material",E],["Section",section_type],
               ["Dimensions",dim_str],["I",f"{I:.4e} m4"],
               ["Beam Weight",f"{beam_weight:.1f} N"]]
